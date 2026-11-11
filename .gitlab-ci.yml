@@ -1,16 +1,16 @@
+image: ghcr.io/sikalabsregistry/wip/ci:2026-11-11.3
+
 variables:
   KC_ISSUER: https://sso.sikalabs.com/realms/training
   KC_CLIENT_ID: gitlab_ci_project_827
 
 test:
-  image: golang:1.27-alpine
   id_tokens:
     KC_JWT:
       aud: https://sso.sikalabs.com/realms/training
   script:
-    - go install github.com/sikalabs/slr@master
     # Prints approval link to the log, approver (username, email, sub) to the log,
     # Access Token (sub=user, azp=client) to the file
     - go run . --issuer $KC_ISSUER --client-id $KC_CLIENT_ID --client-assertion-env KC_JWT > token.local.txt
     - cat token.local.txt
-    - cat token.local.txt | slr parse-jwt -
+    - cat token.local.txt | slr parse-jwt - | jq

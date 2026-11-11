@@ -40,9 +40,9 @@ resource "keycloak_oidc_identity_provider" "gitlab" {
 }
 
 # Client the CI job uses; no secret, authenticates with the GitLab id_token
-resource "keycloak_openid_client" "example_gitlab_ci" {
+resource "keycloak_openid_client" "gitlab_ci_project_827" {
   realm_id  = data.keycloak_realm.training.id
-  client_id = "example_gitlab_ci"
+  client_id = "gitlab_ci_project_827"
   name      = "GitLab CI (${local.gitlab_project})"
 
   access_type                               = "CONFIDENTIAL"

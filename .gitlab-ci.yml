@@ -1,6 +1,6 @@
 variables:
   KC_ISSUER: https://sso.sikalabs.com/realms/training
-  KC_CLIENT_ID: example_gitlab_ci
+  KC_CLIENT_ID: gitlab_ci_project_827
 
 test:
   image: alpine:3.22

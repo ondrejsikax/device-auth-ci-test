@@ -1,4 +1,4 @@
-image: ghcr.io/sikalabsregistry/wip/ci:2026-11-11.3
+image: ghcr.io/sikalabsregistry/wip/ci:2026-11-11.4
 
 variables:
   KC_ISSUER: https://sso.sikalabs.com/realms/training

@@ -8,5 +8,6 @@ test:
     KC_JWT:
       aud: https://sso.sikalabs.com/realms/training
   script:
-    # Prints approval link to the log, Access Token (sub=user, azp=client) to the file
-    - go run . --issuer $KC_ISSUER --client-id $KC_CLIENT_ID > token.local.txt
+    # Prints approval link to the log, approver (username, email, sub) to the log,
+    # Access Token (sub=user, azp=client) to the file
+    - go run . --issuer $KC_ISSUER --client-id $KC_CLIENT_ID --client-assertion-env KC_JWT > token.local.txt

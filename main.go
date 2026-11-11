@@ -40,7 +40,8 @@ func init() {
 	Cmd.Flags().StringVar(&FlagClientID, "client-id", "", "Client ID")
 	Cmd.MarkFlagRequired("client-id")
 	// Read from env, not a flag, so the JWT is not visible in the process list
-	Cmd.Flags().StringVar(&FlagClientAssertionEnv, "client-assertion-env", "KC_JWT", "Env variable with client assertion (JWT), e.g. GitLab CI id_token")
+	Cmd.Flags().StringVar(&FlagClientAssertionEnv, "client-assertion-env", "", "Env variable with client assertion (JWT), e.g. GitLab CI id_token")
+	Cmd.MarkFlagRequired("client-assertion-env")
 }
 
 func main() {
@@ -108,6 +109,7 @@ func oidcDeviceLoginFederated(issuer, clientID, clientAssertion string) {
 	var claims struct {
 		Sub               string `json:"sub"`
 		PreferredUsername string `json:"preferred_username"`
+		Email             string `json:"email"`
 		Azp               string `json:"azp"`
 	}
 	if err := accessToken.Claims(&claims); err != nil {
@@ -117,7 +119,7 @@ func oidcDeviceLoginFederated(issuer, clientID, clientAssertion string) {
 		log.Fatalf("Access Token azp is %q, expected %q", claims.Azp, clientID)
 	}
 
-	fmt.Fprintf(os.Stderr, "Approved by %s (sub=%s), azp=%s\n", claims.PreferredUsername, claims.Sub, claims.Azp)
+	fmt.Fprintf(os.Stderr, "Approved by %s <%s> (sub=%s), azp=%s\n", claims.PreferredUsername, claims.Email, claims.Sub, claims.Azp)
 
 	fmt.Println(oauth2Token.AccessToken)
 }

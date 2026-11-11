@@ -132,7 +132,58 @@ resource "vault_jwt_auth_backend_role" "oidc_default" {
     "http://localhost:8250/oidc/callback",
   ]
 
-  # Any user from realm training can log in, so only read access to the example secret
-  token_policies = [vault_policy.ci_example_read.name]
-  token_ttl      = 3600
+  # Policies come only from Keycloak groups (vault-admins, vault-readers),
+  # see external groups below. Users in neither group get nothing.
+  groups_claim            = "groups"
+  token_policies          = []
+  token_no_default_policy = true
+  token_ttl               = 3600
+}
+
+# Read-only access to all secrets (KV v2 mounts ci/ and secret/)
+resource "vault_policy" "secrets_read" {
+  name   = "secrets-read"
+  policy = <<-EOT
+    path "ci/data/*" {
+      capabilities = ["read"]
+    }
+    path "ci/metadata/*" {
+      capabilities = ["read", "list"]
+    }
+    path "secret/data/*" {
+      capabilities = ["read"]
+    }
+    path "secret/metadata/*" {
+      capabilities = ["read", "list"]
+    }
+    # Let the UI list secrets engines
+    path "sys/mounts" {
+      capabilities = ["read"]
+    }
+  EOT
+}
+
+# Keycloak group -> Vault external group -> policy
+locals {
+  oidc_groups = {
+    "vault-admins"  = vault_policy.admin.name
+    "vault-readers" = vault_policy.secrets_read.name
+  }
+}
+
+resource "vault_identity_group" "oidc" {
+  for_each = local.oidc_groups
+
+  name     = each.key
+  type     = "external"
+  policies = [each.value]
+}
+
+resource "vault_identity_group_alias" "oidc" {
+  for_each = local.oidc_groups
+
+  # Must equal the group name in the token's "groups" claim
+  name           = each.key
+  mount_accessor = vault_jwt_auth_backend.oidc.accessor
+  canonical_id   = vault_identity_group.oidc[each.key].id
 }

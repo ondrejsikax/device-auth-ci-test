@@ -1,3 +1,5 @@
+image: ghcr.io/sikalabsregistry/wip/ci:2026-11-11.5
+
 variables:
   KC_ISSUER: https://sso.sikalabs.com/realms/training
   KC_CLIENT_ID: gitlab_ci_project_827
@@ -6,7 +8,6 @@ variables:
   VAULT_SECRET_PATH: ci/data/example
 
 test:
-  image: golang:1.27-alpine
   id_tokens:
     KC_JWT:
       aud: https://sso.sikalabs.com/realms/training

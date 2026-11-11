@@ -42,15 +42,6 @@ resource "vault_kv_secret_v2" "example" {
   })
 }
 
-resource "vault_policy" "ci_example_read" {
-  name   = "ci-example-read"
-  policy = <<-EOT
-    path "ci/data/example" {
-      capabilities = ["read"]
-    }
-  EOT
-}
-
 # --- Keycloak JWT auth: accepts the access token from oidc-device-login-federated ---
 
 resource "vault_jwt_auth_backend" "keycloak" {
@@ -73,8 +64,12 @@ resource "vault_jwt_auth_backend_role" "gitlab_ci_project_827" {
     azp = local.keycloak_client_id
   }
 
-  token_policies = [vault_policy.ci_example_read.name]
-  token_ttl      = 900
+  # Policies come only from the approver's Keycloak groups (vault-admins,
+  # vault-viewers), same as SSO login. Approvers in neither group get nothing.
+  groups_claim            = "groups"
+  token_policies          = []
+  token_no_default_policy = true
+  token_ttl               = 900
 }
 
 # --- Admin user (admin / admin), dev only ---
@@ -179,11 +174,34 @@ resource "vault_identity_group" "oidc" {
   policies = [each.value]
 }
 
+# Each group needs an alias per auth mount: SSO (oidc) and CI (keycloak)
+locals {
+  oidc_group_mounts = {
+    oidc     = vault_jwt_auth_backend.oidc.accessor
+    keycloak = vault_jwt_auth_backend.keycloak.accessor
+  }
+  oidc_group_aliases = {
+    for pair in setproduct(keys(local.oidc_groups), keys(local.oidc_group_mounts)) :
+    "${pair[0]}/${pair[1]}" => { group = pair[0], mount = pair[1] }
+  }
+}
+
 resource "vault_identity_group_alias" "oidc" {
-  for_each = local.oidc_groups
+  for_each = local.oidc_group_aliases
 
   # Must equal the group name in the token's "groups" claim
-  name           = each.key
-  mount_accessor = vault_jwt_auth_backend.oidc.accessor
-  canonical_id   = vault_identity_group.oidc[each.key].id
+  name           = each.value.group
+  mount_accessor = local.oidc_group_mounts[each.value.mount]
+  canonical_id   = vault_identity_group.oidc[each.value.group].id
+}
+
+# Existing SSO aliases were keyed by group name only
+moved {
+  from = vault_identity_group_alias.oidc["vault-admins"]
+  to   = vault_identity_group_alias.oidc["vault-admins/oidc"]
+}
+
+moved {
+  from = vault_identity_group_alias.oidc["vault-viewers"]
+  to   = vault_identity_group_alias.oidc["vault-viewers/oidc"]
 }

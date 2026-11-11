@@ -136,3 +136,15 @@ resource "keycloak_openid_group_membership_protocol_mapper" "vault_groups" {
   add_to_access_token = true
   add_to_userinfo     = true
 }
+
+# "groups" in the CI Access Token too, Vault CI role maps them to policies
+resource "keycloak_openid_group_membership_protocol_mapper" "gitlab_ci_project_827_groups" {
+  realm_id            = data.keycloak_realm.training.id
+  client_id           = keycloak_openid_client.gitlab_ci_project_827.id
+  name                = "groups"
+  claim_name          = "groups"
+  full_path           = false
+  add_to_id_token     = false
+  add_to_access_token = true
+  add_to_userinfo     = false
+}

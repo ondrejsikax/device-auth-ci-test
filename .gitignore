@@ -19,3 +19,6 @@
 *.local.txt
 *.local.md
 Makefile.local.mk
+
+# Project
+/oidc-device-login-federated

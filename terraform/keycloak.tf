@@ -153,7 +153,9 @@ resource "keycloak_openid_group_membership_protocol_mapper" "gitlab_ci_project_8
 
 locals {
   github_repo = "ondrejsikax/device-auth-ci-test"
-  github_ref  = "refs/heads/master"
+  # GitHub sends sub with immutable IDs: repo:<owner>@<owner_id>/<repo>@<repo_id>:...
+  github_repo_sub = "ondrejsikax@206744846/device-auth-ci-test@1454091351"
+  github_ref      = "refs/heads/master"
 }
 
 resource "keycloak_oidc_identity_provider" "github" {
@@ -193,7 +195,7 @@ resource "keycloak_openid_client" "github_actions_0001" {
   extra_config = {
     "jwt.credential.issuer" = keycloak_oidc_identity_provider.github.alias
     # Only workflows from this repo and branch can authenticate as this client
-    "jwt.credential.sub" = "repo:${local.github_repo}:ref:${local.github_ref}"
+    "jwt.credential.sub" = "repo:${local.github_repo_sub}:ref:${local.github_ref}"
   }
 }
 

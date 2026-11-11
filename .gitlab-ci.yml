@@ -1,6 +1,15 @@
-image: ghcr.io/sikalabsregistry/wip/slr:2026-11-11.1
+variables:
+  KC_ISSUER: https://sso.sikalabs.com/realms/training
+  KC_CLIENT_ID: example_gitlab_ci
 
 test:
+  image: alpine:3.22
+  id_tokens:
+    KC_JWT:
+      aud: https://sso.sikalabs.com/realms/training
+  before_script:
+    - apk add --no-cache curl jq
   script:
-    - slr oidc-device-login --issuer https://sso.sikalabs.com/realms/training --client-id example_device_code --client-secret example_device_code > token.local.txt
-    - cat token.local.txt | slr parse-jwt -
+    - ./scripts/ci-get-approved-token.sh > token.local.txt
+    # Show who approved and which client issued it (never print the token itself)
+    - jq -R 'split(".")[1] | gsub("-";"+") | gsub("_";"/") | @base64d | fromjson | {iss, sub, preferred_username, azp, aud, exp}' token.local.txt

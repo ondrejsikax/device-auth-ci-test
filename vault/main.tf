@@ -132,7 +132,7 @@ resource "vault_jwt_auth_backend_role" "oidc_default" {
     "http://localhost:8250/oidc/callback",
   ]
 
-  # Policies come only from Keycloak groups (vault-admins, vault-readers),
+  # Policies come only from Keycloak groups (vault-admins, vault-viewers),
   # see external groups below. Users in neither group get nothing.
   groups_claim            = "groups"
   token_policies          = []
@@ -167,7 +167,7 @@ resource "vault_policy" "secrets_read" {
 locals {
   oidc_groups = {
     "vault-admins"  = vault_policy.admin.name
-    "vault-readers" = vault_policy.secrets_read.name
+    "vault-viewers" = vault_policy.secrets_read.name
   }
 }
 

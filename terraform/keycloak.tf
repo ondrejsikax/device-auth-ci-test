@@ -108,7 +108,7 @@ resource "keycloak_openid_audience_protocol_mapper" "gitlab_ci_project_827_vault
   add_to_id_token          = false
 }
 
-# --- Vault SSO (client "vault"): groups claim for vault-admins / vault-readers ---
+# --- Vault SSO (client "vault"): groups claim for vault-admins / vault-viewers ---
 
 data "keycloak_openid_client" "vault" {
   realm_id  = data.keycloak_realm.training.id
@@ -120,9 +120,9 @@ resource "keycloak_group" "vault_admins" {
   name     = "vault-admins"
 }
 
-resource "keycloak_group" "vault_readers" {
+resource "keycloak_group" "vault_viewers" {
   realm_id = data.keycloak_realm.training.id
-  name     = "vault-readers"
+  name     = "vault-viewers"
 }
 
 # "groups": ["vault-admins", ...] in the ID token (full_path = false, no leading "/")

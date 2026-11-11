@@ -100,3 +100,39 @@ resource "vault_generic_endpoint" "user_admin" {
     token_policies = [vault_policy.admin.name]
   })
 }
+
+# --- SSO login (UI + CLI) via Keycloak, client "vault" ---
+
+resource "vault_jwt_auth_backend" "oidc" {
+  path               = "oidc"
+  type               = "oidc"
+  oidc_discovery_url = local.keycloak_issuer
+  bound_issuer       = local.keycloak_issuer
+  oidc_client_id     = "vault"
+  oidc_client_secret = "vault"
+  default_role       = "default"
+
+  tune {
+    # Show "OIDC" in the UI login method list
+    listing_visibility = "unauth"
+  }
+}
+
+resource "vault_jwt_auth_backend_role" "oidc_default" {
+  backend   = vault_jwt_auth_backend.oidc.path
+  role_name = "default"
+  role_type = "oidc"
+
+  user_claim      = "preferred_username"
+  bound_audiences = ["vault"]
+  oidc_scopes     = ["openid", "profile", "email"]
+  allowed_redirect_uris = [
+    "https://vault-dev.panda.k8s.sl.zone/ui/vault/auth/oidc/oidc/callback",
+    # vault login -method=oidc
+    "http://localhost:8250/oidc/callback",
+  ]
+
+  # Any user from realm training can log in, so only read access to the example secret
+  token_policies = [vault_policy.ci_example_read.name]
+  token_ttl      = 3600
+}

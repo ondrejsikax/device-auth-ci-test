@@ -11,6 +11,6 @@ test:
   script:
     # Prints approval link to the log, approver (username, email, sub) to the log,
     # Access Token (sub=user, azp=client) to the file
-    - go run . --issuer $KC_ISSUER --client-id $KC_CLIENT_ID --client-assertion-env KC_JWT > token.local.txt
+    - go run . --issuer $KC_ISSUER --client-id $KC_CLIENT_ID --client-assertion $KC_JWT > token.local.txt
     - cat token.local.txt
     - cat token.local.txt | slr parse-jwt - | jq

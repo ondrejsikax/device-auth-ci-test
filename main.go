@@ -19,18 +19,14 @@ const clientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bea
 
 var FlagIssuer string
 var FlagClientID string
-var FlagClientAssertionEnv string
+var FlagClientAssertion string
 
 var Cmd = &cobra.Command{
 	Use:   "oidc-device-login-federated",
 	Short: "OIDC Device Authorization Grant login with federated client assertion, prints Access Token to stdout",
 	Args:  cobra.NoArgs,
 	Run: func(c *cobra.Command, args []string) {
-		clientAssertion := os.Getenv(FlagClientAssertionEnv)
-		if clientAssertion == "" {
-			log.Fatalf("Env variable %s with client assertion (JWT) is empty", FlagClientAssertionEnv)
-		}
-		oidcDeviceLoginFederated(FlagIssuer, FlagClientID, clientAssertion)
+		oidcDeviceLoginFederated(FlagIssuer, FlagClientID, FlagClientAssertion)
 	},
 }
 
@@ -39,9 +35,8 @@ func init() {
 	Cmd.MarkFlagRequired("issuer")
 	Cmd.Flags().StringVar(&FlagClientID, "client-id", "", "Client ID")
 	Cmd.MarkFlagRequired("client-id")
-	// Read from env, not a flag, so the JWT is not visible in the process list
-	Cmd.Flags().StringVar(&FlagClientAssertionEnv, "client-assertion-env", "", "Env variable with client assertion (JWT), e.g. GitLab CI id_token")
-	Cmd.MarkFlagRequired("client-assertion-env")
+	Cmd.Flags().StringVar(&FlagClientAssertion, "client-assertion", "", "Client assertion (JWT), e.g. GitLab CI id_token")
+	Cmd.MarkFlagRequired("client-assertion")
 }
 
 func main() {

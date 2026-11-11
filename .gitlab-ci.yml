@@ -11,8 +11,6 @@ test:
   id_tokens:
     KC_JWT:
       aud: https://sso.sikalabs.com/realms/training
-  before_script:
-    - apk add --no-cache curl jq
   script:
     # Prints approval link to the log, approver (username, email, sub) to the log,
     # Access Token (sub=user, azp=client) to the file

@@ -59,3 +59,41 @@ resource "keycloak_openid_client" "gitlab_ci_project_827" {
     "jwt.credential.sub" = "project_path:${local.gitlab_project}:ref_type:branch:ref:${local.gitlab_ref}"
   }
 }
+
+# Realms created before federated client auth existed don't have the
+# "Signed JWT - Federated" step in their client authentication flow, and the
+# built-in "clients" flow can't be modified. So we create our own client flow
+# (the 4 default steps + federated-jwt) and bind it to the realm.
+# Without it every federated client fails with client_not_found / invalid_client.
+resource "keycloak_authentication_flow" "clients_with_federated" {
+  realm_id    = data.keycloak_realm.training.id
+  alias       = "clients-with-federated"
+  provider_id = "client-flow"
+}
+
+locals {
+  client_authenticators = [
+    "client-secret",
+    "client-jwt",
+    "client-secret-jwt",
+    "client-x509",
+    "federated-jwt",
+  ]
+}
+
+resource "keycloak_authentication_execution" "clients_with_federated" {
+  for_each = { for i, a in local.client_authenticators : a => i }
+
+  realm_id          = data.keycloak_realm.training.id
+  parent_flow_alias = keycloak_authentication_flow.clients_with_federated.alias
+  authenticator     = each.key
+  requirement       = "ALTERNATIVE"
+  priority          = (each.value + 1) * 10
+}
+
+resource "keycloak_authentication_bindings" "training" {
+  realm_id                   = data.keycloak_realm.training.id
+  client_authentication_flow = keycloak_authentication_flow.clients_with_federated.alias
+
+  depends_on = [keycloak_authentication_execution.clients_with_federated]
+}

@@ -10,6 +10,8 @@ test:
   before_script:
     - apk add --no-cache curl jq
   script:
+    # Debug: claims of the GitLab JWT used as client assertion (not the token itself)
+    - echo "$KC_JWT" | jq -R 'split(".") | {header: (.[0] | gsub("-";"+") | gsub("_";"/") | @base64d | fromjson), claims: (.[1] | gsub("-";"+") | gsub("_";"/") | @base64d | fromjson | {iss, sub, aud, exp, iat, jti})}'
     - ./scripts/ci-get-approved-token.sh > token.local.txt
     # Show who approved and which client issued it (never print the token itself)
     - jq -R 'split(".")[1] | gsub("-";"+") | gsub("_";"/") | @base64d | fromjson | {iss, sub, preferred_username, azp, aud, exp}' token.local.txt

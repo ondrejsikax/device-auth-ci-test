@@ -7,22 +7,12 @@ set -eu
 TOKEN_FILE=${1:?token file}
 
 # auth/keycloak = JWT auth backend validating Keycloak tokens (see vault/main.tf)
-LOGIN=$(jq -n --arg role "$VAULT_ROLE" --rawfile jwt "$TOKEN_FILE" \
-    '{role: $role, jwt: ($jwt | rtrimstr("\n"))}' \
-  | curl -sS -X POST --data @- "$VAULT_ADDR/v1/auth/keycloak/login")
+VAULT_TOKEN=$(vault write -field=token auth/keycloak/login \
+  role="$VAULT_ROLE" jwt="$(cat "$TOKEN_FILE")")
+export VAULT_TOKEN
 
-VAULT_TOKEN=$(echo "$LOGIN" | jq -r '.auth.client_token // empty')
-if [ -z "$VAULT_TOKEN" ]; then
-  echo "Vault login failed: $(echo "$LOGIN" | jq -c '.errors // .')" >&2
-  exit 1
-fi
-echo "Logged in to Vault as $(echo "$LOGIN" | jq -r '.auth.metadata | to_entries | map("\(.key)=\(.value)") | join(", ")')" >&2
-
-SECRET=$(curl -sS -H "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDR/v1/$VAULT_SECRET_PATH")
-if ! echo "$SECRET" | jq -e '.data.data' >/dev/null; then
-  echo "Reading $VAULT_SECRET_PATH failed: $(echo "$SECRET" | jq -c '.errors // .')" >&2
-  exit 1
-fi
+# Who we are in Vault and which policies we got (from Keycloak groups)
+vault token lookup -format=json | jq '.data | {display_name, policies, identity_policies}'
 
 # Demo only: print the secret. Real jobs would export it instead.
-echo "$SECRET" | jq '.data.data'
+vault kv get "$VAULT_SECRET_PATH"

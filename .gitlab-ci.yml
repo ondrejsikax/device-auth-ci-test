@@ -5,7 +5,7 @@ variables:
   KC_CLIENT_ID: gitlab_ci_project_827
   VAULT_ADDR: https://vault-dev.panda.k8s.sl.zone
   VAULT_ROLE: gitlab-ci-project-827
-  VAULT_SECRET_PATH: ci/data/example
+  VAULT_SECRET_PATH: ci/example
 
 test:
   id_tokens:

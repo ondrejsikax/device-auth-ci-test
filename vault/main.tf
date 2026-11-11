@@ -15,7 +15,7 @@ terraform {
 
 provider "vault" {
   address = "https://vault-dev.panda.k8s.sl.zone"
-  # token from VAULT_TOKEN env
+  token   = "root"
 }
 
 locals {

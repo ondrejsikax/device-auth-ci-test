@@ -148,3 +148,72 @@ resource "keycloak_openid_group_membership_protocol_mapper" "gitlab_ci_project_8
   add_to_access_token = true
   add_to_userinfo     = false
 }
+
+# --- GitHub Actions (.github/workflows/test.yml) ---
+
+locals {
+  # TODO: set to the GitHub repo (owner/name) running the workflow
+  github_repo = "OWNER/REPO"
+  github_ref  = "refs/heads/master"
+}
+
+resource "keycloak_oidc_identity_provider" "github" {
+  realm              = data.keycloak_realm.training.id
+  alias              = "github"
+  display_name       = "GitHub Actions"
+  provider_id        = "oidc"
+  issuer             = "https://token.actions.githubusercontent.com"
+  authorization_url  = "https://token.actions.githubusercontent.com/unused"
+  token_url          = "https://token.actions.githubusercontent.com/unused"
+  jwks_url           = "https://token.actions.githubusercontent.com/.well-known/jwks"
+  validate_signature = true
+  hide_on_login_page = true
+  client_id          = "unused"
+  client_secret      = "unused"
+  sync_mode          = "IMPORT"
+
+  extra_config = {
+    "supportsClientAssertions"     = "true"
+    "supportsClientAssertionReuse" = "true"
+  }
+}
+
+resource "keycloak_openid_client" "github_ci_example" {
+  realm_id  = data.keycloak_realm.training.id
+  client_id = "github_ci_example"
+  name      = "GitHub Actions (${local.github_repo})"
+
+  access_type                               = "CONFIDENTIAL"
+  client_authenticator_type                 = "federated-jwt"
+  standard_flow_enabled                     = false
+  direct_access_grants_enabled              = false
+  service_accounts_enabled                  = false
+  oauth2_device_authorization_grant_enabled = true
+  oauth2_device_code_lifespan               = 300
+
+  extra_config = {
+    "jwt.credential.issuer" = keycloak_oidc_identity_provider.github.alias
+    # Only workflows from this repo and branch can authenticate as this client
+    "jwt.credential.sub" = "repo:${local.github_repo}:ref:${local.github_ref}"
+  }
+}
+
+resource "keycloak_openid_audience_protocol_mapper" "github_ci_example_vault" {
+  realm_id                 = data.keycloak_realm.training.id
+  client_id                = keycloak_openid_client.github_ci_example.id
+  name                     = "vault-audience"
+  included_custom_audience = "vault"
+  add_to_access_token      = true
+  add_to_id_token          = false
+}
+
+resource "keycloak_openid_group_membership_protocol_mapper" "github_ci_example_groups" {
+  realm_id            = data.keycloak_realm.training.id
+  client_id           = keycloak_openid_client.github_ci_example.id
+  name                = "groups"
+  claim_name          = "groups"
+  full_path           = false
+  add_to_id_token     = false
+  add_to_access_token = true
+  add_to_userinfo     = false
+}

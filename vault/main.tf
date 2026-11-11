@@ -19,8 +19,7 @@ provider "vault" {
 }
 
 locals {
-  keycloak_issuer    = "https://sso.sikalabs.com/realms/training"
-  keycloak_client_id = "gitlab_ci_project_827"
+  keycloak_issuer = "https://sso.sikalabs.com/realms/training"
 }
 
 # --- Example secret ---
@@ -51,9 +50,19 @@ resource "vault_jwt_auth_backend" "keycloak" {
   bound_issuer       = local.keycloak_issuer
 }
 
-resource "vault_jwt_auth_backend_role" "gitlab_ci_project_827" {
+# Vault role name -> Keycloak CI client (azp)
+locals {
+  ci_roles = {
+    "gitlab-ci-project-827" = "gitlab_ci_project_827"
+    "github-ci-example"     = "github_ci_example"
+  }
+}
+
+resource "vault_jwt_auth_backend_role" "ci" {
+  for_each = local.ci_roles
+
   backend   = vault_jwt_auth_backend.keycloak.path
-  role_name = "gitlab-ci-project-827"
+  role_name = each.key
   role_type = "jwt"
 
   # Approving user becomes the Vault entity (visible in audit log)
@@ -61,7 +70,7 @@ resource "vault_jwt_auth_backend_role" "gitlab_ci_project_827" {
   bound_audiences = ["vault"]
   bound_claims = {
     # Only tokens issued to the CI client (job + user approval)
-    azp = local.keycloak_client_id
+    azp = each.value
   }
 
   # Policies come only from the approver's Keycloak groups (vault-admins,
@@ -204,4 +213,9 @@ moved {
 moved {
   from = vault_identity_group_alias.oidc["vault-viewers"]
   to   = vault_identity_group_alias.oidc["vault-viewers/oidc"]
+}
+
+moved {
+  from = vault_jwt_auth_backend_role.gitlab_ci_project_827
+  to   = vault_jwt_auth_backend_role.ci["gitlab-ci-project-827"]
 }

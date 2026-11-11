@@ -89,7 +89,7 @@ func oidcDeviceLoginFederated(issuer, clientID, clientAssertion string) {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "==================================================")
-	if jobURL := os.Getenv("CI_JOB_URL"); jobURL != "" {
+	if jobURL := ciJobURL(); jobURL != "" {
 		fmt.Fprintln(os.Stderr, "Approval required for job:", jobURL)
 	}
 	fmt.Fprintln(os.Stderr, "Open in browser:", deviceAuth.VerificationURIComplete)
@@ -128,4 +128,15 @@ func oidcDeviceLoginFederated(issuer, clientID, clientAssertion string) {
 	fmt.Fprintf(os.Stderr, "Approved by %s (sub=%s email=%s), azp=%s\n", claims.PreferredUsername, claims.Sub, claims.Email, claims.Azp)
 
 	fmt.Println(oauth2Token.AccessToken)
+}
+
+// ciJobURL returns the URL of the current CI job (GitLab CI or GitHub Actions)
+func ciJobURL() string {
+	if url := os.Getenv("CI_JOB_URL"); url != "" {
+		return url
+	}
+	if os.Getenv("GITHUB_RUN_ID") != "" {
+		return os.Getenv("GITHUB_SERVER_URL") + "/" + os.Getenv("GITHUB_REPOSITORY") + "/actions/runs/" + os.Getenv("GITHUB_RUN_ID")
+	}
+	return ""
 }

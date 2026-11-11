@@ -1,0 +1,43 @@
+name: test
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# id-token: write is required to request the GitHub OIDC token
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  KC_ISSUER: https://sso.sikalabs.com/realms/training
+  KC_CLIENT_ID: github_ci_example
+  VAULT_ADDR: https://vault-dev.panda.k8s.sl.zone
+  VAULT_ROLE: github-ci-example
+  VAULT_SECRET_PATH: ci/example
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # Same image as GitLab CI: go, vault, jq, curl
+    container: ghcr.io/sikalabsregistry/wip/ci:2026-11-11.5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get approved Keycloak token
+        run: |
+          # GitHub OIDC token (equivalent of GitLab id_tokens), aud = Keycloak realm
+          KC_JWT=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$KC_ISSUER" | jq -r .value)
+          echo "::add-mask::$KC_JWT"
+          export KC_JWT
+          # Prints approval link to the log, Access Token to the file
+          go run . --issuer "$KC_ISSUER" --client-id "$KC_CLIENT_ID" --client-assertion-env KC_JWT > token.local.txt
+
+      - name: Read secret from Vault
+        run: ./scripts/ci-read-vault-secret.sh token.local.txt
+
+      - name: Cleanup
+        if: always()
+        run: rm -f token.local.txt

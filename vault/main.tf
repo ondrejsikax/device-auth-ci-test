@@ -54,7 +54,7 @@ resource "vault_jwt_auth_backend" "keycloak" {
 locals {
   ci_roles = {
     "gitlab-ci-project-827" = "gitlab_ci_project_827"
-    "github-ci-example"     = "github_ci_example"
+    "github-actions-0001"   = "github_actions_0001"
   }
 }
 
@@ -168,23 +168,14 @@ resource "vault_policy" "secrets_read" {
 }
 
 # Keycloak group -> Vault external group -> policy
+#
+# A Vault external group can have only ONE alias, so there is one Vault group
+# per Keycloak group and auth mount: SSO login (oidc) and CI login (keycloak).
 locals {
   oidc_groups = {
     "vault-admins"  = vault_policy.admin.name
     "vault-viewers" = vault_policy.secrets_read.name
   }
-}
-
-resource "vault_identity_group" "oidc" {
-  for_each = local.oidc_groups
-
-  name     = each.key
-  type     = "external"
-  policies = [each.value]
-}
-
-# Each group needs an alias per auth mount: SSO (oidc) and CI (keycloak)
-locals {
   oidc_group_mounts = {
     oidc     = vault_jwt_auth_backend.oidc.accessor
     keycloak = vault_jwt_auth_backend.keycloak.accessor
@@ -195,27 +186,30 @@ locals {
   }
 }
 
+resource "vault_identity_group" "oidc" {
+  for_each = local.oidc_group_aliases
+
+  name     = "${each.value.group}-${each.value.mount}"
+  type     = "external"
+  policies = [local.oidc_groups[each.value.group]]
+}
+
 resource "vault_identity_group_alias" "oidc" {
   for_each = local.oidc_group_aliases
 
   # Must equal the group name in the token's "groups" claim
   name           = each.value.group
   mount_accessor = local.oidc_group_mounts[each.value.mount]
-  canonical_id   = vault_identity_group.oidc[each.value.group].id
+  canonical_id   = vault_identity_group.oidc[each.key].id
 }
 
-# Existing SSO aliases were keyed by group name only
+# Existing groups now hold the CI (keycloak) alias
 moved {
-  from = vault_identity_group_alias.oidc["vault-admins"]
-  to   = vault_identity_group_alias.oidc["vault-admins/oidc"]
-}
-
-moved {
-  from = vault_identity_group_alias.oidc["vault-viewers"]
-  to   = vault_identity_group_alias.oidc["vault-viewers/oidc"]
+  from = vault_identity_group.oidc["vault-admins"]
+  to   = vault_identity_group.oidc["vault-admins/keycloak"]
 }
 
 moved {
-  from = vault_jwt_auth_backend_role.gitlab_ci_project_827
-  to   = vault_jwt_auth_backend_role.ci["gitlab-ci-project-827"]
+  from = vault_identity_group.oidc["vault-viewers"]
+  to   = vault_identity_group.oidc["vault-viewers/keycloak"]
 }

@@ -152,8 +152,7 @@ resource "keycloak_openid_group_membership_protocol_mapper" "gitlab_ci_project_8
 # --- GitHub Actions (.github/workflows/test.yml) ---
 
 locals {
-  # TODO: set to the GitHub repo (owner/name) running the workflow
-  github_repo = "OWNER/REPO"
+  github_repo = "ondrejsikax/device-auth-ci-test"
   github_ref  = "refs/heads/master"
 }
 
@@ -178,9 +177,9 @@ resource "keycloak_oidc_identity_provider" "github" {
   }
 }
 
-resource "keycloak_openid_client" "github_ci_example" {
+resource "keycloak_openid_client" "github_actions_0001" {
   realm_id  = data.keycloak_realm.training.id
-  client_id = "github_ci_example"
+  client_id = "github_actions_0001"
   name      = "GitHub Actions (${local.github_repo})"
 
   access_type                               = "CONFIDENTIAL"
@@ -198,18 +197,18 @@ resource "keycloak_openid_client" "github_ci_example" {
   }
 }
 
-resource "keycloak_openid_audience_protocol_mapper" "github_ci_example_vault" {
+resource "keycloak_openid_audience_protocol_mapper" "github_actions_0001_vault" {
   realm_id                 = data.keycloak_realm.training.id
-  client_id                = keycloak_openid_client.github_ci_example.id
+  client_id                = keycloak_openid_client.github_actions_0001.id
   name                     = "vault-audience"
   included_custom_audience = "vault"
   add_to_access_token      = true
   add_to_id_token          = false
 }
 
-resource "keycloak_openid_group_membership_protocol_mapper" "github_ci_example_groups" {
+resource "keycloak_openid_group_membership_protocol_mapper" "github_actions_0001_groups" {
   realm_id            = data.keycloak_realm.training.id
-  client_id           = keycloak_openid_client.github_ci_example.id
+  client_id           = keycloak_openid_client.github_actions_0001.id
   name                = "groups"
   claim_name          = "groups"
   full_path           = false

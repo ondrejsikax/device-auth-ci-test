@@ -12,9 +12,9 @@ permissions:
 
 env:
   KC_ISSUER: https://sso.sikalabs.com/realms/training
-  KC_CLIENT_ID: github_ci_example
+  KC_CLIENT_ID: github_actions_0001
   VAULT_ADDR: https://vault-dev.panda.k8s.sl.zone
-  VAULT_ROLE: github-ci-example
+  VAULT_ROLE: github-actions-0001
   VAULT_SECRET_PATH: ci/example
 
 jobs:

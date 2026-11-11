@@ -22,3 +22,8 @@ Makefile.local.mk
 
 # Project
 /oidc-device-login-federated
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*

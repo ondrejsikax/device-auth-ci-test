@@ -1,16 +1,20 @@
-image: ghcr.io/sikalabsregistry/wip/ci:2026-11-11.4
-
 variables:
   KC_ISSUER: https://sso.sikalabs.com/realms/training
   KC_CLIENT_ID: gitlab_ci_project_827
+  VAULT_ADDR: https://vault-dev.panda.k8s.sl.zone
+  VAULT_ROLE: gitlab-ci-project-827
+  VAULT_SECRET_PATH: ci/data/example
 
 test:
+  image: golang:1.27-alpine
   id_tokens:
     KC_JWT:
       aud: https://sso.sikalabs.com/realms/training
+  before_script:
+    - apk add --no-cache curl jq
   script:
     # Prints approval link to the log, approver (username, email, sub) to the log,
     # Access Token (sub=user, azp=client) to the file
     - go run . --issuer $KC_ISSUER --client-id $KC_CLIENT_ID --client-assertion $KC_JWT > token.local.txt
-    - cat token.local.txt
-    - cat token.local.txt | slr parse-jwt - | jq
+    # Exchange the Access Token for a Vault token and read the example secret
+    - ./scripts/ci-read-vault-secret.sh token.local.txt

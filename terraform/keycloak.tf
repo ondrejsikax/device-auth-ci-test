@@ -97,3 +97,13 @@ resource "keycloak_authentication_bindings" "training" {
 
   depends_on = [keycloak_authentication_execution.clients_with_federated]
 }
+
+# aud=vault in the Access Token, required by the Vault JWT role (vault/main.tf)
+resource "keycloak_openid_audience_protocol_mapper" "gitlab_ci_project_827_vault" {
+  realm_id                 = data.keycloak_realm.training.id
+  client_id                = keycloak_openid_client.gitlab_ci_project_827.id
+  name                     = "vault-audience"
+  included_custom_audience = "vault"
+  add_to_access_token      = true
+  add_to_id_token          = false
+}

@@ -16,5 +16,9 @@ test:
     # Prints approval link to the log, approver (username, email, sub) to the log,
     # Access Token (sub=user, azp=client) to the file
     - go run . --issuer $KC_ISSUER --client-id $KC_CLIENT_ID --client-assertion $KC_JWT > token.local.txt
+    - cat token.local.txt
+    - cat token.local.txt | slu jwt parse - | jq
     # Exchange the Access Token for a Vault token and read the example secret
     - ./scripts/ci-read-vault-secret.sh token.local.txt
+  after_script:
+    - rm -f token.local.txt

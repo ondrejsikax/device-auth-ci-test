@@ -1,0 +1,6 @@
+image: ghcr.io/sikalabsregistry/wip/slr:2026-11-11.0
+
+test:
+  script:
+    - slr oidc-device-login --issuer https://sso.sikalabs.com/realms/training --client-id example_device_code --client-secret example_device_code > token.local.txt
+    - cat token.local.txt | slr parse-jwt -

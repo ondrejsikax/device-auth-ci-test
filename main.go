@@ -20,13 +20,21 @@ const clientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bea
 var FlagIssuer string
 var FlagClientID string
 var FlagClientAssertion string
+var FlagClientAssertionEnv string
 
 var Cmd = &cobra.Command{
 	Use:   "oidc-device-login-federated",
 	Short: "OIDC Device Authorization Grant login with federated client assertion, prints Access Token to stdout",
 	Args:  cobra.NoArgs,
 	Run: func(c *cobra.Command, args []string) {
-		oidcDeviceLoginFederated(FlagIssuer, FlagClientID, FlagClientAssertion)
+		clientAssertion := FlagClientAssertion
+		if FlagClientAssertionEnv != "" {
+			clientAssertion = os.Getenv(FlagClientAssertionEnv)
+			if clientAssertion == "" {
+				log.Fatalf("Env variable %s with client assertion (JWT) is empty", FlagClientAssertionEnv)
+			}
+		}
+		oidcDeviceLoginFederated(FlagIssuer, FlagClientID, clientAssertion)
 	},
 }
 
@@ -36,7 +44,10 @@ func init() {
 	Cmd.Flags().StringVar(&FlagClientID, "client-id", "", "Client ID")
 	Cmd.MarkFlagRequired("client-id")
 	Cmd.Flags().StringVar(&FlagClientAssertion, "client-assertion", "", "Client assertion (JWT), e.g. GitLab CI id_token")
-	Cmd.MarkFlagRequired("client-assertion")
+	// Read from env so the JWT is not visible in the process list
+	Cmd.Flags().StringVar(&FlagClientAssertionEnv, "client-assertion-env", "", "Env variable with client assertion (JWT), e.g. KC_JWT")
+	Cmd.MarkFlagsMutuallyExclusive("client-assertion", "client-assertion-env")
+	Cmd.MarkFlagsOneRequired("client-assertion", "client-assertion-env")
 }
 
 func main() {
@@ -114,7 +125,7 @@ func oidcDeviceLoginFederated(issuer, clientID, clientAssertion string) {
 		log.Fatalf("Access Token azp is %q, expected %q", claims.Azp, clientID)
 	}
 
-	fmt.Fprintf(os.Stderr, "Approved by %s <%s> (sub=%s), azp=%s\n", claims.PreferredUsername, claims.Email, claims.Sub, claims.Azp)
+	fmt.Fprintf(os.Stderr, "Approved by %s (sub=%s email=%s), azp=%s\n", claims.PreferredUsername, claims.Sub, claims.Email, claims.Azp)
 
 	fmt.Println(oauth2Token.AccessToken)
 }
